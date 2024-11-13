@@ -1,0 +1,51 @@
+version: '3.8'
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - ben-bot-network
+
+  backend:
+    build: ./backend
+    container_name: ben-bot-backend
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db/ben_bot_db
+      - SECRET_KEY=${SECRET_KEY:-default_secret_key}  # Use a default value if SECRET_KEY is not set
+    depends_on:
+      - db
+    networks:
+      - ben-bot-network
+
+  frontend:
+    build: ./frontend
+    container_name: ben-bot-frontend
+    networks:
+      - ben-bot-network
+
+  db:
+    image: postgres:13
+    container_name: ben-bot-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ben_bot_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - ben-bot-network
+
+volumes:
+  postgres_data:
+
+networks:
+  ben-bot-network:
+    driver: bridge
